@@ -1,0 +1,50 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run tests
+      run: echo "✅ No tests written yet"
+
+    - name: Build Docker image
+      run: docker build -t my-node-app .
+
+    - name: Run Docker container
+      run: docker run -d -p 3000:3000 my-node-app
+
+    - name: Notify Google Chat
+      run: |
+        curl -X POST -H 'Content-Type: application/json' \
+        --data '{"text": "✅ GitHub Actions Build Succeeded!"}' \
+        ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+
+    - name: Send email on failure
+      if: failure()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.GMAIL_USER }}
+        password: ${{ secrets.GMAIL_APP_PASSWORD }}
+        subject: ❌ GitHub Build Failed
+        body: Build failed for the latest commit.
+        to: receiver@example.com
+        from: GitHub CI/CD <${{ secrets.GMAIL_USER }}>
